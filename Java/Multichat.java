@@ -1,4 +1,8 @@
-
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
@@ -7,7 +11,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
+interface clientStatus
+{
+    void clientDisconnected(String clientID);
+}
 class Shared
 {
     static ServerSocket server;
@@ -17,26 +24,35 @@ class MyAllSockets
 {
     static ArrayList<Socket> arr=new ArrayList<>();
     static ArrayList<PrintWriter> parr=new ArrayList<>();
+    static ArrayList<String> name=new ArrayList<>();
     static Map<String, Integer> Kmap=new HashMap<>();
 }
 
-class ReadThread extends Thread
+class ReadThread extends Thread implements clientStatus
 {
     int index;
     String name;
+    boolean connected;
     public ReadThread(int index) 
     {
+    	System.out.println(index+" Reader Thread Init");
         this.index=index;
         name=null;
+        connected=true;
+        Client.ReadThread=this;
+    }
+
+    ReadThread() {
     }
     
     public void run()
     {
         try 
         {
+            System.out.println("Reader thread working");
             int flag=0;
             BufferedReader brs=new BufferedReader(new InputStreamReader(MyAllSockets.arr.get(index).getInputStream()));
-            while(true)
+            while(connected)
             {
                 if(flag==0)
                 {
@@ -44,6 +60,7 @@ class ReadThread extends Thread
                     String s=getClientName(brs);
                     MyAllSockets.Kmap.put(s, index);
                     this.name=s;
+                    MyAllSockets.name.add(this.name);
                     echoOnlineClients();
                 }
                 else
@@ -51,6 +68,7 @@ class ReadThread extends Thread
                     normalReader(brs);
                 }
             }
+            System.out.println("Stopped "+this.name);
         } 
         catch (Exception ex) 
         {
@@ -66,17 +84,20 @@ class ReadThread extends Thread
     void echoOnlineClients() throws Exception
     {
         
-        Object[] ar=MyAllSockets.Kmap.keySet().toArray();
+        System.out.println("Size: "+MyAllSockets.Kmap.size());
+        Set<String> ar=MyAllSockets.Kmap.keySet();
         PrintWriter pw=MyAllSockets.parr.get(index);
-        System.out.print("index "+index);
+        System.out.println("index "+index);
         pw.println( "Hello zxhjnkj ");
         StringBuffer buf=new StringBuffer();
         for (Object clientName : ar)
         {
             System.out.println("Online: "+clientName.toString());
-            buf.append(clientName.toString()+"\n");
+            buf.append(clientName.toString()+"$");
         }
-        pw.println(buf.toString());
+        String sent=buf.toString();
+        System.out.println("Sending: "+sent);
+        pw.println(sent);
     }
     void normalReader(BufferedReader reader) throws Exception
     {
@@ -86,6 +107,16 @@ class ReadThread extends Thread
             throw new RuntimeException();
         }
         System.out.println(name+": "+s);
+    }
+
+    @Override
+    public void clientDisconnected() {
+        System.out.println("Stocbcjfdsncknpped");
+        connected=false;
+        MyAllSockets.Kmap.remove(this.name);
+        MyAllSockets.arr.remove(this.index);
+        MyAllSockets.parr.remove(this.index);
+        System.out.print(clientID + " Stopped");
     }
 }
 
@@ -113,6 +144,7 @@ class MyClientConnection extends Thread
     void init() throws Exception
     {
         pw=new PrintWriter(socket.getOutputStream(), true);
+        System.out.println("Adding new client");
         MyAllSockets.parr.add(pw);
         MyAllSockets.arr.add(socket);
     }
@@ -155,6 +187,7 @@ public class Multichat
         String str=br.readLine();
         for(int i=0;i<MyAllSockets.parr.size();i++)
         {
+            System.out.println("Sending "+str+" to "+MyAllSockets.name.get(i));
             MyAllSockets.parr.get(i).println(str);
         }
     }

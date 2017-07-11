@@ -1,11 +1,10 @@
 
-import java.awt.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.*;
 
- interface conStatus{
+interface conStatus{
     void closed();
 }
 class ReaderThread extends Thread{
@@ -17,26 +16,39 @@ class ReaderThread extends Thread{
     @Override
     public void run()
     {
-        while(true)
-        {
-            try
+        try
+        { 
+            BufferedReader reader=new BufferedReader(new InputStreamReader(soc.getInputStream()));
+            String s=reader.readLine();
+            if(s==null)
             {
-                BufferedReader reader=new BufferedReader(new InputStreamReader(soc.getInputStream()));
-                if(reader.readLine()==null)
+                throw new RuntimeException();
+            }
+            String onlineClients[]=s.split("$");
+            System.out.println("Online Clients:");
+            for(String client: onlineClients)
+            {
+                System.out.println(client);
+            }
+            Client.messageSender();
+            while(true)
+            {
+                s=reader.readLine();
+                if(s==null)
                 {
                     throw new RuntimeException();
                 }
-                System.out.println("\nMessage from server: "+reader.readLine());
-            }
-            catch(Exception e)
-            {
-                Client ob=new Client();
-                ob.closed();
-                break;
+                System.out.println("\nMessage from server: "+s);
             }
         }
+        catch(Exception e)
+        {
+            Client ob=new Client();
+            ob.closed();
+        }
     }
-} 
+}
+
 public class Client implements conStatus
 {
     static Socket socket;
@@ -44,17 +56,27 @@ public class Client implements conStatus
     static BufferedReader br;
     static final int portNumber=Multichat.portNumber;
     static PrintWriter pw;
+    static String name;
+    static ReadThread t;
     public static void main(String args[])
     {
         try
         {
             init();
+            Runtime.getRuntime().addShutdownHook(new Thread() {
+
+                @Override
+                public void run() {
+                       System.out.println("Exiting");
+                       ReadThread.clientDisconnected();
+                }
+            });
             System.out.println("Enter name: ");
-            String name=br.readLine();
+            name=br.readLine();
             System.out.println(name+" is  connected with server...");
             sendName(name);
+            System.out.println("Adding hook");
             
-            messageSender();
         }
         catch(Exception ex)
         {
@@ -82,6 +104,7 @@ public class Client implements conStatus
             pw.println(str);
         }
     }
+    @Override
     public void closed()
     {
         System.out.println("\nServer turned off");

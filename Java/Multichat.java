@@ -1,13 +1,13 @@
-
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 class Shared
 {
     static ServerSocket server;
@@ -54,7 +54,10 @@ class ReadThread extends Thread
         } 
         catch (Exception ex) 
         {
-            Logger.getLogger(ReadThread.class.getName()).log(Level.SEVERE, null, ex);
+            MyAllSockets.Kmap.remove(this.name);
+            MyAllSockets.arr.remove(this.index);
+            MyAllSockets.parr.remove(this.index);
+            System.out.println(this.name + " Disconected");
         }
     }
     String getClientName(BufferedReader brs) throws Exception
@@ -73,7 +76,7 @@ class ReadThread extends Thread
         for (Object clientName : ar)
         {
             System.out.println("Online: "+clientName.toString());
-            buf.append(clientName.toString()+"$");
+            buf.append(clientName.toString()+"-");
         }
         System.out.println("Sending: "+buf.toString());
         pw.println(buf.toString());
